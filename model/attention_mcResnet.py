@@ -5,6 +5,7 @@
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
 from model import mcresnet as resnet_v1
 
 
@@ -36,11 +37,11 @@ class resnet_fcn_101_skip:
         in_tensor = in_tensor - self.mean
         print('*'*100)
         with slim.arg_scope(resnet_v1.resnet_arg_scope()):
-            net,_1,_2= resnet_v1.resnet_v1_101(in_tensor,
-                                         output_stride=8,
-                                         global_pool=False,
-                                         is_training=istraining,
-                                         reuse=reuse)
+            net,_1,_2= resnet_v1.mcResnet(in_tensor,
+                                          output_stride=8,
+                                          global_pool=False,
+                                          is_training=istraining,
+                                          reuse=reuse)
             # the last conv2d's weights is not share
             out = slim.conv2d(net, 6, kernel_size=1, stride=1, padding='SAME', scope='re'+sub)
             # the last conv2d's weights is not share
