@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 # This file is main to train all the images
 # @WindWang2, wangjicheng11@163.com
+# Date: 2019-05-22
 import datetime as dt
 import os
 import sys
 import time
 
 import numpy as np
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
+from tensorflow.contrib.slim.nets import resnet_v1
+from tensorflow.python.ops import control_flow_ops
 
 import dataIO as io
 import telegram_send
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
 from model import attention_mcResnet as resnet_fcn
-from tensorflow.contrib.slim.nets import resnet_v1
-from tensorflow.python.ops import control_flow_ops
 
 if len(sys.argv) != 2:
     print('Please enter the information (e.g., swjtu:0, no space)')
     sys.exit()
 server_name = sys.argv[1]
+# For specfic server
 if server_name.split(':')[0]=='swjtu':
     os.environ['https_proxy']='socks5://127.0.0.1:1080'
 short_des='fcn-ms_residual_new_all'

@@ -18,6 +18,7 @@ This file are modified to add multi-connection module
 based on the resnet_v1.py from slim of tensorflow.
 
 @WindWang2, wangjicheng11@163.com
+Date: 2019-05-22
 """
 from __future__ import absolute_import, division, print_function
 

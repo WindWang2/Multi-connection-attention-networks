@@ -54,7 +54,7 @@ def test(image, name):
                     x = i
                     y = j
                     input_patch = image[:, x: x + ps, y: y+ps, :]
-                    temp= sess.run(out,
+                    temp = sess.run(out,
                                    feed_dict={image_test: input_patch})
                     # print(temp.dtype)
                     xx[x: x+ps, y: y+ps,:] += temp[0, :, :, :]

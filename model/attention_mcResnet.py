@@ -2,6 +2,7 @@
 # This file is use to create the tensorflow model,
 # privide the input and some params to get the the output.
 # @WindWang2, wangjicheng11@163.com
+# Date: 2019-05-19
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim

@@ -2,6 +2,7 @@
 # This file use to generate the tensor
 # though tfcoords.
 # @WindWang2, wangjicheng11@163.com
+# Date: 2019-05-13
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -71,7 +72,7 @@ def _test(filename='../Data/val.tfrecords', bs=30):
                     plt.savefig('../../../Data/test'+str(i)+'_'+str(j)+'.jpg')
                     if j > 200:
                         print(j)
-                        print('train: ', j, train_a.shape)
+                        print('train: ', j, a.shape)
                 for _ in range(2):
                     print(_)
                     # val_a = sess.run(rc, feed_dict={is_training:False})
