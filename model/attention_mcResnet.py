@@ -38,11 +38,11 @@ class resnet_fcn_101_skip:
         in_tensor = in_tensor - self.mean
         print('*'*100)
         with slim.arg_scope(resnet_v1.resnet_arg_scope()):
-            net,_1,_2= resnet_v1.mcResnet(in_tensor,
-                                          output_stride=8,
-                                          global_pool=False,
-                                          is_training=istraining,
-                                          reuse=reuse)
+            net, _1, _2 = resnet_v1.mcResnet(in_tensor,
+                                             output_stride=8,
+                                             global_pool=False,
+                                             is_training=istraining,
+                                             reuse=reuse)
             # the last conv2d's weights is not share
             out = slim.conv2d(net, 6, kernel_size=1, stride=1, padding='SAME', scope='re'+sub)
             # the last conv2d's weights is not share
@@ -60,6 +60,38 @@ class resnet_fcn_101_skip:
             out_re = tf.image.resize_images(out_re, tf.shape(in_tensor)[1:3])
             print(out, out_re)
         return out, out_re
+
+    # implementation of FPN
+    def _build_FPN(self, in_tensor, reuse=False, sub='', istraining=True):
+        in_tensor = in_tensor - self.mean
+        print('*'*100)
+        with slim.arg_scope(resnet_v1.resnet_arg_scope()):
+            net, _1, _2 = resnet_v1.mcResnet(in_tensor,
+                                             output_stride=8,
+                                             global_pool=False,
+                                             is_training=istraining,
+                                             reuse=reuse)
+            # the last conv2d's weights is not share
+            # out = slim.conv2d(net, 6, kernel_size=1, stride=1, padding='SAME', scope='re'+sub)
+            # the last conv2d's weights is not share
+            # print(out)
+            # out = tf.image.resize_images(out, tf.shape(in_tensor)[1:3])
+        return net
+
+    def build_FPN(self, train_phase):
+        if(self.is_inference):
+            img_batch = self.inference_tensor
+        else:
+            img_batch, label_batch = tf.cond(train_phase,
+                                             lambda: self.train_it.get_next(),
+                                             lambda: self.val_it.get_next())
+        img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
+        img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+        out1 = self._build_FPN(img_batch, reuse=False, sub='')
+        out2 = self._build_FPN(img_batch_2, reuse=True, sub='_1')
+        out3 = self._build_FPN(img_batch_3, reuse=True, sub='_2')
+
+
 
     # train_phase is the bool tensor
     def build(self, train_phase):
@@ -117,6 +149,128 @@ class resnet_fcn_101_skip:
         acc2 = self.get_acc(out2_re_2, label_batch)
         acc3 = self.get_acc(out3_re_2, label_batch)
         return [loss_1, loss_2, loss_3, loss, w_loss], [acc1, acc2, acc3, acc]
+
+    def build_max_pooling(self, train_phase):
+        if(self.is_inference):
+            img_batch = self.inference_tensor
+        else:
+            img_batch, label_batch = tf.cond(train_phase,
+                                             lambda: self.train_it.get_next(),
+                                             lambda: self.val_it.get_next())
+        img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
+        img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+
+        label_batch_2 = tf.image.resize_images(tf.expand_dims(label_batch, axis=-1), (240, 240),
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        label_batch_2 = tf.squeeze(label_batch_2, axis=-1)
+        label_batch_3 = tf.image.resize_images(tf.expand_dims(label_batch, axis=-1), (160, 160),
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        label_batch_3 = tf.squeeze(label_batch_3, axis=-1)
+
+        out1, _ = self._build(img_batch, reuse=False, sub='')
+        out2, _ = self._build(img_batch_2, reuse=True, sub='_1')
+        out3, _ = self._build(img_batch_3, reuse=True, sub='_2')
+
+        out2_re = tf.image.resize_images(out2, (320, 320))
+        out3_re = tf.image.resize_images(out3, (320, 320))
+
+        out_1_expand = tf.expand_dims(out1, axis=-1)
+        out_2_expand = tf.expand_dims(out2, axis=-1)
+        out_3_expand = tf.expand_dims(out3, axis=-1)
+
+        out = tf.concat((out_1_expand, out_2_expand, out_3_expand), axis=-1)
+        out_re = tf.reduce_max(out, axis=-1)
+
+        loss = self.get_loss(out_re, label_batch)
+        loss_1 = self.get_loss(out1, label_batch)
+        loss_2 = self.get_loss(out2, label_batch_2)
+        loss_3 = self.get_loss(out3, label_batch_3)
+        w_loss = self.get_weight_loss()
+
+        acc = self.get_acc(out_re, label_batch)
+        acc1 = self.get_acc(out1, label_batch)
+        acc2 = self.get_acc(out2_re, label_batch)
+        acc3 = self.get_acc(out3_re, label_batch)
+        return [loss_1, loss_2, loss_3, loss, w_loss], [acc1, acc2, acc3, acc]
+
+    def inference_max_pooling(self):
+        img_batch = self.inference_tensor
+        img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
+        img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+
+        out1, _ = self._build(img_batch, reuse=False, sub='')
+        out2, _ = self._build(img_batch_2, reuse=True, sub='_1')
+        out3, _ = self._build(img_batch_3, reuse=True, sub='_2')
+
+        out_1_expand = tf.expand_dims(out1, axis=-1)
+        out_2_expand = tf.expand_dims(out2, axis=-1)
+        out_3_expand = tf.expand_dims(out3, axis=-1)
+
+        out = tf.concat((out_1_expand, out_2_expand, out_3_expand), axis=-1)
+        out_re = tf.reduce_max(out, axis=-1)
+
+        return out_re
+
+    def build_mean_pooling(self, train_phase):
+        if(self.is_inference):
+            img_batch = self.inference_tensor
+        else:
+            img_batch, label_batch = tf.cond(train_phase,
+                                             lambda: self.train_it.get_next(),
+                                             lambda: self.val_it.get_next())
+        img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
+        img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+
+        label_batch_2 = tf.image.resize_images(tf.expand_dims(label_batch, axis=-1), (240, 240),
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        label_batch_2 = tf.squeeze(label_batch_2, axis=-1)
+        label_batch_3 = tf.image.resize_images(tf.expand_dims(label_batch, axis=-1), (160, 160),
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        label_batch_3 = tf.squeeze(label_batch_3, axis=-1)
+
+        out1, _ = self._build(img_batch, reuse=False, sub='')
+        out2, _ = self._build(img_batch_2, reuse=True, sub='_1')
+        out3, _ = self._build(img_batch_3, reuse=True, sub='_2')
+
+        out2_re = tf.image.resize_images(out2, (320, 320))
+        out3_re = tf.image.resize_images(out3, (320, 320))
+
+        out_1_expand = tf.expand_dims(out1, axis=-1)
+        out_2_expand = tf.expand_dims(out2, axis=-1)
+        out_3_expand = tf.expand_dims(out3, axis=-1)
+
+        out = tf.concat((out_1_expand, out_2_expand, out_3_expand), axis=-1)
+        out_re = tf.reduce_mean(out, axis=-1)
+
+        loss = self.get_loss(out_re, label_batch)
+        loss_1 = self.get_loss(out1, label_batch)
+        loss_2 = self.get_loss(out2, label_batch_2)
+        loss_3 = self.get_loss(out3, label_batch_3)
+        w_loss = self.get_weight_loss()
+
+        acc = self.get_acc(out_re, label_batch)
+        acc1 = self.get_acc(out1, label_batch)
+        acc2 = self.get_acc(out2_re, label_batch)
+        acc3 = self.get_acc(out3_re, label_batch)
+        return [loss_1, loss_2, loss_3, loss, w_loss], [acc1, acc2, acc3, acc]
+
+    def inference_max_pooling(self):
+        img_batch = self.inference_tensor
+        img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
+        img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+
+        out1, _ = self._build(img_batch, reuse=False, sub='')
+        out2, _ = self._build(img_batch_2, reuse=True, sub='_1')
+        out3, _ = self._build(img_batch_3, reuse=True, sub='_2')
+
+        out_1_expand = tf.expand_dims(out1, axis=-1)
+        out_2_expand = tf.expand_dims(out2, axis=-1)
+        out_3_expand = tf.expand_dims(out3, axis=-1)
+
+        out = tf.concat((out_1_expand, out_2_expand, out_3_expand), axis=-1)
+        out_re = tf.reduce_mean(out, axis=-1)
+
+        return out_re
 
     def inference(self, is_training=False):
 

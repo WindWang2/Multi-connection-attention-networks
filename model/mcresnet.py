@@ -170,8 +170,7 @@ def _mcResnet(inputs,
 
           residual = slim.conv2d(shortcut, 512, [1, 1], stride=1,
                                  scope='b1conv1')
-          residual = resnet_utils.conv2d_same(residual, 512, 3, 1,
-                                              rate=1, scope='b1conv2')
+          residual = slim.conv2d_transpose(residual, 512, 3, stride=2, scope='b1conv2')
           residual = slim.conv2d(residual, 1024, [1, 1], stride=1,
                                  activation_fn=None, scope='b1conv3')
           net = tf.nn.relu(shortcut + residual)
@@ -189,8 +188,7 @@ def _mcResnet(inputs,
 
           residual = slim.conv2d(shortcut, 256, [1, 1], stride=1,
                                  scope='b2conv1')
-          residual = resnet_utils.conv2d_same(residual, 256, 3, 1,
-                                              rate=1, scope='b2conv2')
+          residual = slim.conv2d_transpose(residual, 256, 3, stride=2, scope='b2conv2')
           residual = slim.conv2d(residual, 512, [1, 1], stride=1,
                                  activation_fn=None, scope='b2conv3')
           net = tf.nn.relu(shortcut + residual)
@@ -208,7 +206,7 @@ def _mcResnet(inputs,
 
           residual = slim.conv2d(shortcut, 128, [1, 1], stride=1,
                                  scope='b3conv1')
-          residual = slim.conv2d_transpose(residual, 128, 3, stride=2, scope='b3conv2')
+          residual = slim.conv2d_same(residual, 128, 3, stride=1, scope='b3conv2')
           residual = slim.conv2d(residual, 256, [1, 1], stride=1,
                                  activation_fn=None, scope='b3conv3')
           shortcut_0 = tf.image.resize_images(shortcut,
@@ -216,44 +214,21 @@ def _mcResnet(inputs,
           net = tf.nn.relu(shortcut_0 + residual)
 
           # upres4
-          shortcut = outputs_points['conv2']
-          # print(shortcut)
-          conv_blk0 = slim.conv2d(shortcut, 64, 1, stride=1, scope='conv_blk0_1')
-          conv_blk0 = slim.conv2d(conv_blk0, 64, 3, stride=1, padding='SAME',
-                                  scope='conv_blk0_2')
-          conv_blk0 = slim.conv2d(conv_blk0, 128, 1, stride=1, scope='conv_blk0_3',
-                                  activation_fn=None)
-          net_0 = slim.conv2d(net, 128, 1, scope='b4conv0')
-          # net_0 = tf.image.resize_images(net_0, (net.shape[1]*2, net.shape[2]*2))
-          shortcut = tf.nn.relu(net_0 + shortcut + conv_blk0)
-
-          residual = slim.conv2d(shortcut, 64, [1, 1], stride=1,
-                                 scope='b4conv1')
-          residual = slim.conv2d_transpose(residual, 64, 3, stride=2, scope='b4conv2')
-          # residual = resnet_utils.conv2d_same(residual, 128, 3, 1,
-                                              # rate=1, scope='b4conv2')
-          residual = slim.conv2d(residual, 128, [1, 1], stride=1,
-                                 activation_fn=None, scope='b4conv3')
-          shortcut_0 = tf.image.resize_images(shortcut,
-                                              (shortcut.shape[1]*2, shortcut.shape[2]*2))
-          net = tf.nn.relu(shortcut_0 + residual)
-
-          # upres5
           shortcut = outputs_points['conv1']
           conv_blk00 = slim.conv2d(shortcut, 32, 1, stride=1, scope='conv_blk00_1')
           conv_blk00 = slim.conv2d(conv_blk00, 32, 3, stride=1,padding='SAME',
                                    scope='conv_blk00_2')
           conv_blk00 = slim.conv2d(conv_blk00, 64, 1, stride=1, scope='conv_blk00_3',
                                   activation_fn=None)
-          net_0 = slim.conv2d(net, 64, 1, scope='b5conv0')
+          net_0 = slim.conv2d(net, 64, 1, scope='b4conv0')
           # net_0 = tf.image.resize_images(net_0, (net.shape[1]*2, net.shape[2]*2))
           # net_0 = slim.conv2d_transpose(net, 64, 3, stride=2, scope='b5conv0')
           shortcut = tf.nn.relu(net_0 + shortcut + conv_blk00)
           residual = slim.conv2d(shortcut, 32, [1, 1], stride=1,
-                                 scope='b5conv1')
-          residual = slim.conv2d_transpose(residual, 32, 3, stride=2, scope='b5conv2')
+                                 scope='b4conv1')
+          residual = slim.conv2d_transpose(residual, 32, 3, stride=2, scope='b4conv2')
           residual = slim.conv2d(residual, 64, [1, 1], stride=1,
-                                 activation_fn=None, scope='b5conv3')
+                                 activation_fn=None, scope='b4conv3')
           shortcut_0 = tf.image.resize_images(shortcut,
                                               (shortcut.shape[1]*2, shortcut.shape[2]*2))
           net = tf.nn.relu(shortcut_0 + residual)
