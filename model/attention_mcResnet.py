@@ -78,6 +78,7 @@ class resnet_fcn_101_skip:
             # out = tf.image.resize_images(out, tf.shape(in_tensor)[1:3])
         return net
 
+
     def build_FPN(self, train_phase):
         if(self.is_inference):
             img_batch = self.inference_tensor
@@ -87,11 +88,87 @@ class resnet_fcn_101_skip:
                                              lambda: self.val_it.get_next())
         img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
         img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+        label_batch_2 = tf.image.resize_images(tf.expand_dims(label_batch, axis=-1), (240, 240),
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        label_batch_2 = tf.squeeze(label_batch_2, axis=-1)
+        label_batch_3 = tf.image.resize_images(tf.expand_dims(label_batch, axis=-1), (160, 160),
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        label_batch_3 = tf.squeeze(label_batch_3, axis=-1)
+
         out1 = self._build_FPN(img_batch, reuse=False, sub='')
         out2 = self._build_FPN(img_batch_2, reuse=True, sub='_1')
         out3 = self._build_FPN(img_batch_3, reuse=True, sub='_2')
 
+        out3_conv = slim.conv2d(out3, 64, kernel_size=1, stride=1,
+                              padding='SAME', scope='re3')
+        out2_conv = slim.conv2d(out2, 64, kernel_size=1, stride=1,
+                              padding='SAME', scope='re2')
+        out1_conv = slim.conv2d(out1, 64, kernel_size=1, stride=1,
+                              padding='SAME', scope='re1')
 
+        out3_re = slim.conv2d(out3, self.num_cls, kernel_size=1, stride=1,
+                              padding='SAME', scope='re3')
+        out2_re = slim.conv2d(out2, self.num_cls, kernel_size=1, stride=1,
+                              padding='SAME', scope='re2')
+        out1_re = slim.conv2d(out1, self.num_cls, kernel_size=1, stride=1,
+                              padding='SAME', scope='re1')
+
+
+        fusion32 = tf.image.resize_images(out3_conv, (240, 240)) + out2_conv
+        fusion_all = tf.image.resize_images(fusion32, (320, 320)) + out1_conv
+
+        out2_re_2 = tf.image.resize_images(out2_re, (320, 320))
+        out3_re_2 = tf.image.resize_images(out3_re, (320, 320))
+
+        out_re = slim.conv2d(fusion_all, self.num_cls,
+                             kernel_size=1, stride=1,
+                             padding='SAME', scope='re_all')
+
+        loss = self.get_loss(out_re, label_batch)
+        loss_1 = self.get_loss(out1_re, label_batch)
+        loss_2 = self.get_loss(out2_re, label_batch_2)
+        loss_3 = self.get_loss(out3_re, label_batch_3)
+        w_loss = self.get_weight_loss()
+
+        acc = self.get_acc(out_re, label_batch)
+        acc1 = self.get_acc(out1_re, label_batch)
+        acc2 = self.get_acc(out2_re_2, label_batch)
+        acc3 = self.get_acc(out3_re_2, label_batch)
+
+        return [loss_1, loss_2, loss_3, loss, w_loss], [acc1, acc2, acc3, acc]
+
+    def inference_FPN(self, train_phase):
+        if(self.is_inference):
+            img_batch = self.inference_tensor
+        else:
+            img_batch, label_batch = tf.cond(train_phase,
+                                             lambda: self.train_it.get_next(),
+                                             lambda: self.val_it.get_next())
+        img_batch_2 = tf.image.resize_images(img_batch, (240, 240))
+        img_batch_3 = tf.image.resize_images(img_batch, (160, 160))
+
+        out1 = self._build_FPN(img_batch, reuse=False, sub='')
+        out2 = self._build_FPN(img_batch_2, reuse=True, sub='_1')
+        out3 = self._build_FPN(img_batch_3, reuse=True, sub='_2')
+
+        # FPN
+
+        out3_conv = slim.conv2d(out3, 64, kernel_size=1, stride=1,
+                              padding='SAME', scope='re3')
+        out2_conv = slim.conv2d(out2, 64, kernel_size=1, stride=1,
+                              padding='SAME', scope='re2')
+        out1_conv = slim.conv2d(out1, 64, kernel_size=1, stride=1,
+                              padding='SAME', scope='re1')
+
+        fusion32 = tf.image.resize_images(out3_conv, (240, 240)) + out2_conv
+        fusion_all = tf.image.resize_images(fusion32, (320, 320)) + out1_conv
+        # .....
+
+        out_re = slim.conv2d(fusion_all, self.num_cls,
+                             kernel_size=1, stride=1,
+                             padding='SAME', scope='re_all')
+
+        return out_re
 
     # train_phase is the bool tensor
     def build(self, train_phase):
