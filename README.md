@@ -6,7 +6,7 @@
 <img src="http://ftp.ipi.uni-hannover.de/ISPRS_WGIII_website/ISPRSIII_4_Test_results/2D_labeling_potsdam/2D_labeling_Potsdam_details_SWJ_2/top_potsdam_2_13_class.tif_resized.jpg" alt="label" width="200" height="200">
   </div>
 
-; The pretrained model of Potsdam Dataset is available [here](https://drive.google.com/open?id=1jPS3MqWlqa1mwEvwhYxG9Gw8FTFTZHXH)
+<!-- The pretrained model of Potsdam Dataset is available [here](https://drive.google.com/open?id=1jPS3MqWlqa1mwEvwhYxG9Gw8FTFTZHXH)-->
 
 by Jicheng WANG, Li SHEN, Wenfan QIAO, Yanshuai DAI, Zhilin LI, details will be available when the paper is published.
 
