@@ -8,7 +8,9 @@
 
 <!-- The pretrained model of Potsdam Dataset is available [here](https://drive.google.com/open?id=1jPS3MqWlqa1mwEvwhYxG9Gw8FTFTZHXH)-->
 
-by Jicheng WANG, Li SHEN, Wenfan QIAO, Yanshuai DAI, Zhilin LI, details will be available when the paper is published.
+The pretrained model of Potsdam Dataset will be available in a month.
+
+by Jicheng WANG, Li SHEN, Wenfan QIAO, Yanshuai DAI, Zhilin LI, details ([paper](https://www.mdpi.com/2072-4292/11/13/1617)).
 
 ## Introduction
 This code is the implementation of SWJ_2 in [ISPRS Potsdam labeling challenge 2D](http://www2.isprs.org/commissions/comm2/wg4/potsdam-2d-semantic-labeling.html).
